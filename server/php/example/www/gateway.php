@@ -13,6 +13,23 @@
 require_once dirname(__DIR__)."/config.php";
 require_once dirname(dirname(__DIR__))."/EnvayaSMS.php";
 
+//Visits a site and prints whatever it finds.
+function visitSite($url, $action){
+  // connect via SSL, but don't check cert
+  
+  $handle=curl_init($url);
+  curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($handle, CURLOPT_POST, 2);
+  curl_setopt($handle, CURLOPT_POSTFIELDS, "from={$action->from}&message={$action->message}&timestamp={$action->timestamp}");
+  $content = curl_exec($handle);
+  curl_close($handle);
+  
+  return $content; // show target page
+}
+
+
+
 $request = EnvayaSMS::get_request();
 
 header("Content-Type: {$request->get_response_type()}");
@@ -29,40 +46,14 @@ $action = $request->get_action();
 
 switch ($action->type)
 {
-    case EnvayaSMS::ACTION_INCOMING:    
-        
-        // Send an auto-reply for each incoming message.
-    
-        $type = strtoupper($action->message_type);
-    
-        error_log("Received $type from {$action->from}");
-        error_log(" message: {$action->message}");
-
-        if ($action->message_type == EnvayaSMS::MESSAGE_TYPE_MMS)
-        {
-            foreach ($action->mms_parts as $mms_part)
-            {                
-                $ext_map = array('image/jpeg' => 'jpg', 'image/gif' => 'gif', 'text/plain' => 'txt', 'application/smil' => 'smil');
-                $ext = @$ext_map[$mms_part->type] ?: "unk";
-                
-                $filename = "mms_parts/" . uniqid('mms') . ".$ext";
-                
-                copy($mms_part->tmp_name, dirname(__DIR__)."/$filename");
-                error_log(" mms part type {$mms_part->type} saved to {$filename}");
-            }
-        }                       
-        
-        $reply = new EnvayaSMS_OutgoingMessage();
-        $reply->message = "You said: {$action->message}";
-    
-        error_log("Sending reply: {$reply->message}");
-        
-        echo $request->render_response(array(
-            new EnvayaSMS_Event_Send(array($reply))
-        ));        
-        return;
-        
-    case EnvayaSMS::ACTION_OUTGOING:
+     case EnvayaSMS::ACTION_INCOMING:    
+       
+       error_log("Received {$action->message_type} from {$action->from}: {$action->message}");
+       visitSite("https://dumaworks.com/sms/", $action);
+       echo $request->render_response();
+       return;
+       
+     case EnvayaSMS::ACTION_OUTGOING:
         $messages = array();
    
         // In this example implementation, outgoing SMS messages are queued 
