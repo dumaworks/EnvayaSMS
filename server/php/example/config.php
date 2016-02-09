@@ -3,11 +3,13 @@
 ini_set('display_errors','0');
 
 /*
+ * Read password from json file `secret.json' in current directory
  * This password must match the password in the EnvayaSMS app settings,
  * otherwise example/www/gateway.php will return an "Invalid request signature" error.
  */
 
-$PASSWORD = 'rosebud';
+$secret = json_decode(file_get_contents(dirname(__FILE__) . '/secret.json'), true);
+$PASSWORD = $secret['PASSWORD'];
 
 /*
  * example/send_sms.php uses the local file system to queue outgoing messages
